@@ -6,23 +6,15 @@ Use Task-based asynchronous pattern (TAP) to run Revit API code from any executi
 [![NuGet Link](https://img.shields.io/nuget/v/Revit.Async)](https://www.nuget.org/packages/Revit.Async/)
 # Background
 
-If you have ever encountered a Revit API exception saying, "Cannot execute Revit API outside of Revit API context",
-typically when you want to execute Revit API code from a modeless window, you may need this library to save your life.
+If you've encountered the Revit API exception "Cannot execute Revit API outside of Revit API context"—often when running code from a modeless window—this library may help.
 
-A common solution for this exception is to wrap the Revit API code using `IExternalEventHandler` and register the handler instance to Revit ahead of time to get a trigger (`ExternalEvent`).
-To execute the handler, just raise the trigger from anywhere to queue the handler to the Revit command loop.
-But there comes another problem.
-After raising the trigger, within the same context, you have no idea when the handler will be executed and it's not easy to get some result generated from that handler.
-If you do want to make this happen, you have to manually yield the control back to the calling context.
+A typical solution is to wrap Revit API code in an `IExternalEventHandler`, register it with Revit, and trigger it using an `ExternalEvent`. However, once triggered, you cannot easily determine when the handler executes or retrieve its results from the same context. Manually yielding control back to the calling context is usually required.
 
-This solution looks quite similar to the mechanism of "Promise" if you are familiar with JavaScript ES6.
-Actually, we can achieve all the above logic by making use of task-based asynchronous pattern (TAP) which is generally known as `Task<T>` in .NET.
-By adopting Revit.Async, it is possible to run Revit API code from any context, because internally Revit.Async wraps your code automatically with `IExternalEventHandler` and yields the return value to the calling context to make your invocation more natural.
+This process resembles the "Promise" mechanism in JavaScript ES6. Using the task-based asynchronous pattern (TAP) in .NET—commonly known as `Task<T>`—Revit.Async internally wraps your code in an `IExternalEventHandler` and returns results to the calling context. This allows you to run Revit API code naturally from any context.
 
-If you are unfamiliar with the task-based asynchronous pattern (TAP), here is some useful material on it provided by Microsoft:
+For more on the task-based asynchronous pattern (TAP), see these Microsoft resources:
 
-- [Task-based asynchronous pattern (TAP)
-](https://docs.microsoft.com/en-us/dotnet/standard/asynchronous-programming-patterns/task-based-asynchronous-pattern-tap)
+- [Task-based asynchronous pattern (TAP)](https://docs.microsoft.com/en-us/dotnet/standard/asynchronous-programming-patterns/task-based-asynchronous-pattern-tap)
 - [Task asynchronous programming model](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/async/task-asynchronous-programming-model)
 
 Here is a [diagram comparing the Revit API external event mechanism with Revit.Async](https://drive.google.com/file/d/1sb6Yrlt6zjkE9XBh4UB5sWV_i8nTpkmG/view?usp=sharing) and
@@ -69,81 +61,62 @@ Some of the valid Revit API contexts are:
 * IUpdater
 
 ## RunAsync
-The main functionality of Revit.Async is exposed by `RevitTask.RunAsync()` method.
-There are multiple overloads for `RevitTask.RunAsync()` method.
 
-### Execute sync code, without return value
-* `Task RunAsync(Action action)`
-```csharp
-await RevitTask.RunAsync(() =>
-{
-    // sync function without return value
-})
-```
-* `Task RunAsync(Action<UIApplication> action)`
-```csharp
-await RevitTask.RunAsync((uiApp) =>
-{
-    // sync function without return value, with uiApp paramter to access Revit DB
-})
-```
-### Execute sync code, with return value
-* `Task<T> RunAsync<T>(Func<T> func)`
-```csharp
-var result = await RevitTask.RunAsync(() =>
-{
-    // sync function with return value
-    return 0;
-})
-// result will be 0
-```
-* `Task<T> RunAsync<T>(Func<UIApplication, T> func)`
-```csharp
-var result = await RevitTask.RunAsync((uiApp) =>
-{
-    // sync function with return value, with uiApp paramter to access Revit DB
-    return 0;
-})
-// result will be 0
-```
-### Execute async code, without return value
-* `Task RunAsync(Func<Task> func)`
-```csharp
-await RevitTask.RunAsync(async () =>
-{
-    // async function without return value
-})
-```
-* `Task RunAsync(Func<UIApplication, Task> func)`
-```csharp
-await RevitTask.RunAsync(async (uiApp) =>
-{
-    // async function without return value, with uiApp paramter to access Revit DB
-})
-```
-### Execute async code, with return value
-* `Task<T> RunAsync<T>(Func<Task<T>> func)`
-```csharp
-var result = await RevitTask.RunAsync(async () =>
-{
-    // async function with return value, http request as an example
-    var httpResponse = await http.Get("server api url");
-    //
-    return httpResponse;
-})
-// result will be the http response
-```
-* `Task<T> RunAsync<T>(Func<UIApplication, Task<T>> func)`
-```csharp
-var result = await RevitTask.RunAsync(async (uiApp) =>
-{
-    // async function with return value, with uiApp paramter to access Revit DB, http request as an example
-    var httpResponse = await http.Get("server api url");
-    //
-    return httpResponse;
-})
-// result will be the http response
-```
+The core functionality of Revit.Async is provided by the `RevitTask.RunAsync()` method, which has several overloads.
+
+### Execute Synchronous Code
+*   **Without Return Value**
+    *   `Task RunAsync(Action action)`
+    *   `Task RunAsync(Action<UIApplication> action)`
+    ```csharp
+    // Without UIApplication
+    await RevitTask.RunAsync(() => { /* sync code */ });
+
+    // With UIApplication
+    await RevitTask.RunAsync((uiApp) => { /* sync code with Revit DB access */ });
+    ```
+
+*   **With Return Value**
+    *   `Task<T> RunAsync<T>(Func<T> func)`
+    *   `Task<T> RunAsync<T>(Func<UIApplication, T> func)`
+    ```csharp
+    // Without UIApplication
+    var result = await RevitTask.RunAsync(() => { return 0; });
+
+    // With UIApplication
+    var result = await RevitTask.RunAsync((uiApp) => { return 0; });
+    ```
+
+### Execute Asynchronous Code
+*   **Without Return Value**
+    *   `Task RunAsync(Func<Task> func)`
+    *   `Task RunAsync(Func<UIApplication, Task> func)`
+    ```csharp
+    // Without UIApplication
+    await RevitTask.RunAsync(async () => { /* async code */ });
+
+    // With UIApplication
+    await RevitTask.RunAsync(async (uiApp) => { /* async code with Revit DB access */ });
+    ```
+
+*   **With Return Value**
+    *   `Task<T> RunAsync<T>(Func<Task<T>> func)`
+    *   `Task<T> RunAsync<T>(Func<UIApplication, Task<T>> func)`
+    ```csharp
+    // Without UIApplication
+    var result = await RevitTask.RunAsync(async () =>
+    {
+        var httpResponse = await http.Get("server api url");
+        return httpResponse;
+    });
+
+    // With UIApplication
+    var result = await RevitTask.RunAsync(async (uiApp) =>
+    {
+        var httpResponse = await http.Get("server api url");
+        return httpResponse;
+    });
+    ```
 
 # Examples
 
@@ -302,13 +275,11 @@ public class ButtonCommand : ICommand
 }
 ```
 
-## Define your own handler
+## Define Your Own Handler
 
-Fed up with the weak `IExternalEventHandler` interface?
-Use the `IGenericExternalEventHandler<TParameter,TResult>` interface instead.
-It provides you with the ability to pass argument to a handler and receive result on complete.
+Tired of the limited `IExternalEventHandler` interface? Switch to `IGenericExternalEventHandler<TParameter, TResult>`. This interface lets you pass arguments to a handler and receive a result upon completion.
 
-It's always recommended to derive from the predefined abstract classes; they are designed to handle the argument passing and result returning part.
+For best results, use the predefined abstract classes, which manage argument passing and result returning for you.
 
 | Class                                                   | Description                       |
 | ------------------------------------------------------- | --------------------------------- |
