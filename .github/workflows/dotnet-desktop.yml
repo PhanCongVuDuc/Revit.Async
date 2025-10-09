@@ -45,12 +45,12 @@ on:
     branches: [ "master" ]
 
 env:
-  DOTNET_VERSION: '6.0.x'  # 用于编译 .NET Standard 2.1
-  SOLUTION_FILE: 'Revit.Async.sln'  # 替换为您的解决方案文件名
+  DOTNET_VERSION: '6.0.x'
+  SOLUTION_FILE: 'Revit.Async.sln'
 
 jobs:
   build:
-    runs-on: windows-latest  # Revit 插件需要 Windows 环境
+    runs-on: windows-latest
     
     steps:
     - name: Checkout code
@@ -66,28 +66,27 @@ jobs:
       
     - name: Restore NuGet packages
       run: |
-        # 恢复所有项目的包
         nuget restore ${{ env.SOLUTION_FILE }}
         
     - name: Build .NET Framework 4.0 project
       run: |
-        msbuild YourProject.Net40.csproj /p:Configuration=Release /p:Platform="Any CPU" /p:TargetFrameworkVersion=v4.0
+        msbuild Revit.Async.NET40/Revit.Async.NET40.csproj /p:Configuration=Release /p:Platform="x64" /p:TargetFrameworkVersion=v4.0
         
     - name: Build .NET Framework 4.5 project  
       run: |
-        msbuild YourProject.Net45.csproj /p:Configuration=Release /p:Platform="Any CPU" /p:TargetFrameworkVersion=v4.5
+        msbuild Revit.Async/Revit.Async.csproj /p:Configuration=Release /p:Platform="x64" /p:TargetFrameworkVersion=v4.5
         
     - name: Build .NET Standard 2.1 project
       run: |
-        dotnet build YourProject.NetStandard21.csproj --configuration Release --framework netstandard2.1
+        dotnet build Revit.Async.NET.Standard/Revit.Async.NET.Standard.csproj --configuration Release --framework netstandard2.1
         
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: revit-async-build
         path: |
-          **/bin/Release/
-          **/bin/Release/net40/
-          **/bin/Release/net45/
-          **/bin/Release/netstandard2.1/
+          build/Release/
+          build/Release/net40/
+          build/Release/net45/
+          build/Release/net_standard_21/
         retention-days: 7
