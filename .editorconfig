@@ -23,7 +23,7 @@ generated_code = true
 # C# files
 [*.cs]
 # New line preferences
-csharp_new_line_before_open_brace = all
+csharp_new_line_before_open_brace = accessors, anonymous_methods, anonymous_types, events, indexers, lambdas, local_functions, methods, object_collection_array_initializers, types
 csharp_new_line_before_else = true
 csharp_new_line_before_catch = true
 csharp_new_line_before_finally = true
